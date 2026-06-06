@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>英文單字筆記</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <h1>英文單字筆記</h1>
+    <section class="panel">
+      <label for="wordInput">輸入不懂的英文單字</label>
+      <div class="input-row">
+        <input id="wordInput" type="text" placeholder="例如：serendipity" />
+        <button id="searchButton">查詢辭典</button>
+      </div>
+      <div id="result" class="result"></div>
+      <button id="saveButton" class="save-button" disabled>儲存單字到資料庫</button>
+    </section>
+
+    <section class="panel">
+      <h2>儲存的單字清單</h2>
+      <div id="savedWords" class="saved-words"></div>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
