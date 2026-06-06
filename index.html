@@ -1,29 +1,57 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>英文單字筆記</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <main>
-    <h1>英文單字筆記</h1>
-    <section class="panel">
-      <label for="wordInput">輸入不懂的英文單字</label>
-      <div class="input-row">
-        <input id="wordInput" type="text" placeholder="例如：serendipity" />
-        <button id="searchButton">查詢辭典</button>
-      </div>
-      <div id="result" class="result"></div>
-      <button id="saveButton" class="save-button" disabled>儲存單字到資料庫</button>
-    </section>
+<div class="search-box">
+    <input type="text" id="wordInput" placeholder="請輸入英文單字 (例如: apple)...">
+    <button id="searchBtn">查詢單字</button>
+</div>
 
-    <section class="panel">
-      <h2>儲存的單字清單</h2>
-      <div id="savedWords" class="saved-words"></div>
-    </section>
-  </main>
-  <script src="script.js"></script>
-</body>
-</html>
+<div id="resultContainer" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; display: none;">
+    <h2 id="resultWord" style="margin-top: 0;"></h2>
+    <p><strong>發音:</strong> <span id="resultPhonetic"></span></p>
+    <div id="definitions"></div>
+</div>
+document.getElementById('searchBtn').addEventListener('click', function() {
+    const word = document.getElementById('wordInput').value.trim();
+    
+    if (word === "") {
+        alert("請先輸入單字！");
+        return;
+    }
+
+    // 呼叫免費的字典 API
+    const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("找不到這個單字，請檢查拼字是否正確！");
+            }
+            return response.json();
+        })
+        .then(data => {
+            // 成功抓到資料後，開始拆解並塞入網頁
+            const wordData = data[0];
+            
+            document.getElementById('resultWord').innerText = wordData.word;
+            document.getElementById('resultPhonetic').innerText = wordData.phonetic || "暫無發音資訊";
+            
+            // 清空舊的定義內容
+            const meaningsContainer = document.getElementById('definitions');
+            meaningsContainer.innerHTML = "";
+            
+            // 跑迴圈把所有的詞性和英文解釋撈出來
+            wordData.meanings.forEach(meaning => {
+                const partOfSpeech = meaning.partOfSpeech; // 詞性 (如 noun, verb)
+                const definitionText = meaning.definitions[0].definition; // 第一個定義
+                
+                // 建立 HTML 結構
+                const p = document.createElement('p');
+                p.innerHTML = `<strong>[${partOfSpeech}]</strong> ${definitionText}`;
+                meaningsContainer.appendChild(p);
+            });
+            
+            // 顯示結果區塊
+            document.getElementById('resultContainer').style.display = "block";
+        })
+        .catch(error => {
+            alert(error.message);
+        });
+});
