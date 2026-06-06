@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的英文單字查詢字典 (中英雙語版)</title>
+    <title>我的英文單字查詢字典 (發音升級版)</title>
     <style>
         /* 基礎網頁樣式美化 */
         body {
@@ -81,6 +81,22 @@
             background-color: #2b6cb0;
         }
 
+        /* 發音喇叭按鈕樣式 */
+        .speak-btn {
+            background-color: #edf2f7;
+            color: #4a5568;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            margin-left: 10px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        .speak-btn:hover {
+            background-color: #e2e8f0;
+        }
+
         /* 結果顯示區域樣式 */
         .result-container {
             border-top: 2px solid #edf2f7;
@@ -98,6 +114,7 @@
             color: #2d3748;
             margin: 0;
             display: inline-block;
+            vertical-align: middle;
         }
 
         .phonetic {
@@ -106,6 +123,7 @@
             margin-left: 12px;
             font-family: "Lucida Sans Unicode", sans-serif;
             display: inline-block;
+            vertical-align: middle;
         }
 
         .meaning-block {
@@ -127,7 +145,7 @@
         .definition-zh {
             font-size: 16px;
             font-weight: bold;
-            color: #2b6cb0; /* 中文用藍色加粗，更明顯 */
+            color: #2b6cb0;
             margin: 0 0 6px 0;
         }
 
@@ -142,11 +160,11 @@
 <body>
 
     <div class="container">
-        <h1>🔍 中英雙語單字字典</h1>
+        <h1>🔍 英語數位字典 (含發音)</h1>
         
         <div class="search-box">
             <div class="input-cell">
-                <input type="text" id="wordInput" placeholder="請輸入英文單字 (例如: friend)..." autocomplete="off">
+                <input type="text" id="wordInput" placeholder="請輸入英文單字 (例如: voice)..." autocomplete="off">
             </div>
             <div class="btn-cell">
                 <button id="searchBtn">查詢</button>
@@ -156,6 +174,7 @@
         <div id="resultContainer" class="result-container">
             <div class="word-header">
                 <h2 id="resultWord" class="word-title"></h2>
+                <button id="speakBtn" class="speak-btn">🔊 發音</button>
                 <span id="resultPhonetic" class="phonetic"></span>
             </div>
             <div id="definitions"></div>
@@ -163,6 +182,8 @@
     </div>
 
     <script>
+        let currentWord = ""; // 用來記錄當前查詢的單字
+
         document.getElementById('searchBtn').addEventListener('click', performSearch);
 
         document.getElementById('wordInput').addEventListener('keypress', function(e) {
@@ -171,7 +192,16 @@
             }
         });
 
-        // 核心查詢函式
+        // 🔊 點擊發音按鈕時觸發
+        document.getElementById('speakBtn').addEventListener('click', function() {
+            if (currentWord !== "") {
+                // 建立語音播放物件
+                const utterance = new SpeechSynthesisUtterance(currentWord);
+                utterance.lang = 'en-US'; // 設定為美式英語發音
+                window.speechSynthesis.speak(utterance); // 讓瀏覽器發出聲音
+            }
+        });
+
         function performSearch() {
             const wordInput = document.getElementById('wordInput');
             const word = wordInput.value.trim();
@@ -181,7 +211,9 @@
                 return;
             }
 
-            // 1. 先抓取英英字典 API
+            // 記錄當前單字供發音使用
+            currentWord = word;
+
             const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
 
             fetch(apiUrl)
@@ -198,18 +230,15 @@
                     document.getElementById('resultPhonetic').innerText = wordData.phonetic || "暫無音標";
                     
                     const meaningsContainer = document.getElementById('definitions');
-                    meaningsContainer.innerHTML = "正在翻譯中文解釋..."; // 讀取中的提示
+                    meaningsContainer.innerHTML = "正在翻譯中文解釋...";
                     document.getElementById('resultContainer').style.display = "block";
                     
-                    // 用來收集所有動態建立的 HTML 區塊
                     const fragment = document.createDocumentFragment();
 
-                    // 2. 跑迴圈處理每個詞性，並即時翻譯
                     for (const meaning of wordData.meanings) {
                         const partOfSpeech = meaning.partOfSpeech;
                         const definitionEn = meaning.definitions[0].definition;
                         
-                        // 呼叫免費翻譯 API (將英文翻譯為繁體中文)
                         let definitionZh = "暫無中文翻譯";
                         try {
                             const translateUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(definitionEn)}&langpair=en|zh-TW`;
@@ -222,7 +251,6 @@
                             console.error("翻譯出錯:", err);
                         }
                         
-                        // 建立顯示區塊
                         const block = document.createElement('div');
                         block.className = 'meaning-block';
                         block.innerHTML = `
@@ -233,13 +261,13 @@
                         fragment.appendChild(block);
                     }
                     
-                    // 翻譯全部完成後，一次塞入網頁中
                     meaningsContainer.innerHTML = "";
                     meaningsContainer.appendChild(fragment);
                 })
                 .catch(error => {
                     alert(error.message);
                     document.getElementById('resultContainer').style.display = "none";
+                    currentWord = "";
                 });
         }
     </script>
