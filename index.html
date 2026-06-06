@@ -1,57 +1,228 @@
-<div class="search-box">
-    <input type="text" id="wordInput" placeholder="請輸入英文單字 (例如: apple)...">
-    <button id="searchBtn">查詢單字</button>
-</div>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的英文單字查詢字典</title>
+    <style>
+        /* 基礎網頁樣式美化 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: block;
+        }
 
-<div id="resultContainer" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; display: none;">
-    <h2 id="resultWord" style="margin-top: 0;"></h2>
-    <p><strong>發音:</strong> <span id="resultPhonetic"></span></p>
-    <div id="definitions"></div>
-</div>
-document.getElementById('searchBtn').addEventListener('click', function() {
-    const word = document.getElementById('wordInput').value.trim();
-    
-    if (word === "") {
-        alert("請先輸入單字！");
-        return;
-    }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            margin: 40px auto;
+            box-sizing: border-box;
+        }
 
-    // 呼叫免費的字典 API
-    const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+        h1 {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
 
-    fetch(apiUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("找不到這個單字，請檢查拼字是否正確！");
+        /* 搜尋區域樣式 */
+        .search-box {
+            display: table;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .input-cell {
+            display: table-cell;
+            width: 100%;
+            padding-right: 10px;
+        }
+
+        .btn-cell {
+            display: table-cell;
+            white-space: nowrap;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            border-color: #3182ce;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #2b6cb0;
+        }
+
+        /* 結果顯示區域樣式 */
+        .result-container {
+            border-top: 2px solid #edf2f7;
+            padding-top: 20px;
+            display: none; /* 預設隱藏 */
+        }
+
+        .word-header {
+            margin-bottom: 15px;
+        }
+
+        .word-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 0;
+            display: inline-block;
+        }
+
+        .phonetic {
+            font-size: 16px;
+            color: #718096;
+            margin-left: 12px;
+            font-family: "Lucida Sans Unicode", sans-serif;
+            display: inline-block;
+        }
+
+        .meaning-block {
+            background-color: #f7fafc;
+            border-left: 4px solid #3182ce;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .part-of-speech {
+            font-style: italic;
+            font-weight: bold;
+            color: #4a5568;
+            text-transform: capitalize;
+            margin-bottom: 5px;
+        }
+
+        .definition {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #2d3748;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🔍 線上英文單字字典</h1>
+        
+        <div class="search-box">
+            <div class="input-cell">
+                <input type="text" id="wordInput" placeholder="請輸入英文單字 (例如: apple)..." autocomplete="off">
+            </div>
+            <div class="btn-cell">
+                <button id="searchBtn">查詢</button>
+            </div>
+        </div>
+
+        <div id="resultContainer" class="result-container">
+            <div class="word-header">
+                <h2 id="resultWord" class="word-title"></h2>
+                <span id="resultPhonetic" class="phonetic"></span>
+            </div>
+            <div id="definitions"></div>
+        </div>
+    </div>
+
+    <script>
+        // 點擊按鈕執行查詢
+        document.getElementById('searchBtn').addEventListener('click', performSearch);
+
+        // 按下 Enter 鍵也能執行查詢
+        document.getElementById('wordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
             }
-            return response.json();
-        })
-        .then(data => {
-            // 成功抓到資料後，開始拆解並塞入網頁
-            const wordData = data[0];
-            
-            document.getElementById('resultWord').innerText = wordData.word;
-            document.getElementById('resultPhonetic').innerText = wordData.phonetic || "暫無發音資訊";
-            
-            // 清空舊的定義內容
-            const meaningsContainer = document.getElementById('definitions');
-            meaningsContainer.innerHTML = "";
-            
-            // 跑迴圈把所有的詞性和英文解釋撈出來
-            wordData.meanings.forEach(meaning => {
-                const partOfSpeech = meaning.partOfSpeech; // 詞性 (如 noun, verb)
-                const definitionText = meaning.definitions[0].definition; // 第一個定義
-                
-                // 建立 HTML 結構
-                const p = document.createElement('p');
-                p.innerHTML = `<strong>[${partOfSpeech}]</strong> ${definitionText}`;
-                meaningsContainer.appendChild(p);
-            });
-            
-            // 顯示結果區塊
-            document.getElementById('resultContainer').style.display = "block";
-        })
-        .catch(error => {
-            alert(error.message);
         });
-});
+
+        function performSearch() {
+            const wordInput = document.getElementById('wordInput');
+            const word = wordInput.value.trim();
+            
+            if (word === "") {
+                alert("請先輸入單字！");
+                return;
+            }
+
+            // 免費公開的英文字典 API 網址
+            const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("找不到這個單字，請檢查拼字是否正確！");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const wordData = data[0];
+                    
+                    // 填入查詢的單字與音標
+                    document.getElementById('resultWord').innerText = wordData.word;
+                    document.getElementById('resultPhonetic').innerText = wordData.phonetic || "暫無音標";
+                    
+                    // 清空上一次查詢的舊內容
+                    const meaningsContainer = document.getElementById('definitions');
+                    meaningsContainer.innerHTML = "";
+                    
+                    // 跑迴圈把撈出來的詞性與英文定義塞入網頁
+                    wordData.meanings.forEach(meaning => {
+                        const partOfSpeech = meaning.partOfSpeech; // 詞性 (如 noun, verb)
+                        const definitionText = meaning.definitions[0].definition; // 主要定義
+                        
+                        // 建立一個新的網頁區塊塊來裝這條解釋
+                        const block = document.createElement('div');
+                        block.className = 'meaning-block';
+                        
+                        block.innerHTML = `
+                            <div class="part-of-speech">[${partOfSpeech}]</div>
+                            <p class="definition">${definitionText}</p>
+                        `;
+                        
+                        meaningsContainer.appendChild(block);
+                    });
+                    
+                    // 成功抓到資料，將結果區塊顯示出來 (設定為 block)
+                    document.getElementById('resultContainer').style.display = "block";
+                })
+                .catch(error => {
+                    alert(error.message);
+                    // 失敗時隱藏結果區塊
+                    document.getElementById('resultContainer').style.display = "none";
+                });
+        }
+    </script>
+
+</body>
+</html>
